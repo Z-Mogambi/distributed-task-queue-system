@@ -34,7 +34,7 @@ class QueueManager:
         
         self.redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
         
-        self.redis.lpush(self.queue_key, job_id)
+        self.redis.lpush(self.queue_key, str(job_id))
         
         return str(job_id)
         
