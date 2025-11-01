@@ -92,6 +92,14 @@ class QueueManager:
         
         return True
     
+    def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
+        """get job data by ID"""
+        job_data = self.redis.hget(f"job:{job_id}", "data")
+
+        if job_data is None:
+            return None
+        return json.loads(job_data)
+    
     def fail_job(self, job_id: str, error: str) -> bool:
         """
         Mark job as failed.
@@ -115,3 +123,4 @@ class QueueManager:
         
         self.redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
         return True
+    
