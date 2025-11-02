@@ -1,3 +1,4 @@
+import random
 import redis
 import json
 import uuid
@@ -10,7 +11,7 @@ class QueueManager:
         self.redis = redis.Redis(host=host, port=port, decode_responses=True)
         self.queue_key = "jobs:pending"
     
-    def enqueue(self, job_type: str, payload: Dict[str, Any]) -> str:
+    def enqueue(self, job_type: str, payload: Dict[str, Any], max_retries: int=3) -> str:
         """
         Add a job to the queue.
         
@@ -29,7 +30,10 @@ class QueueManager:
             "type": job_type,
             "payload": payload,
             "status": "pending",
-            "created_at": int(time.time())
+            "created_at": int(time.time()),
+            "attempts": 0,
+            "max_retries": max_retries,
+            "last_error": None
         }
         
         self.redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
@@ -101,26 +105,47 @@ class QueueManager:
         return json.loads(job_data)
     
     def fail_job(self, job_id: str, error: str) -> bool:
-        """
-        Mark job as failed.
-        
-        TODO for you:
-        1. Get current job data
-        2. Update status to "failed"
-        3. Add error message
-        4. Save back to redis
-        5. Return True
-        
-        (We'll add retry logic later)
-        """
-        # my code
+        """marking job as failed and retrying in under max_retries"""
+
         job_data = self.redis.hget(f"job:{job_id}", "data")
         job_dict = json.loads(job_data)
+
+        #increment attemps
+        job_dict["attempts"] += 1
+        current_attempts = job_dict["attempts"]
+        max_retries = job_dict.get("max_retries", 3)
+
+        job_dict["last_error"] = {
+            "message": error,
+            "timestamp": int(time.time()),
+            "attempt": current_attempts
+        }
         
-        job_dict["status"] = "failed"
-        job_dict["error"] = error
-        job_dict["failed_at"] = int(time.time())
-        
-        self.redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
-        return True
-    
+        #retry logic
+        if current_attempts < max_retries:
+            #exponential backoff delay
+            base_delay = 1000
+            max_delay = 6000
+            jitter = random.uniform(0, 1000)
+            delay = min((base_delay * (2 ** current_attempts)) + jitter, max_delay)
+            
+            #updating status and saving updated job
+            job_dict["status"] = "retrying"
+            job_dict["retry_at"] = time.time() + (delay/1000)
+            self.redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
+
+            time.sleep(delay/1000)
+            
+            self.redis.lpush(self.queue_key, job_id)
+
+            print(f"job {job_id[:8]} failed (attempt {current_attempts}/{max_retries}). Retrying...")
+            return True
+        else:
+            job_dict["status"] = "failed"
+            job_dict["failed_at"] = int(time.time())
+
+            self.redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
+            self.redis.lpush("queue:dead_letter", job_id)
+
+            print(f"Job {job_id[:8]}, parmanently failed after {current_attempts} attemps")
+            return False

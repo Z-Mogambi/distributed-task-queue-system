@@ -85,3 +85,18 @@ def process_job(job):
     payload = job.get("payload", {})
 
     return handler(payload)
+
+def handle_flaky_service(payload):
+    """simulating a flanky external service that has 50% failure testing retry logic"""
+    print("Calling external service...")
+    time.sleep(1)
+
+    if random.random() < 0.5:
+        raise Exception("Network timeout: external service unreachable")
+    
+    return{
+        "status": "success",
+        "response": "service call succeeded",
+        "timestamp": int(time.time())
+    }
+JOB_HANDLERS["flaky_service"] = handle_flaky_service

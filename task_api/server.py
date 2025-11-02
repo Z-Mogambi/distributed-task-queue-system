@@ -46,7 +46,8 @@ def create_job():
         print(f"job enqueued with ID: {job_id}") #debug
         return jsonify({
             "job_id": job_id,
-            "status": "queued"
+            "status": "queued",
+            "type": job_type
         }), 201
     except Exception as e:
         print(f"error enqueueing: {e}") #debug
@@ -82,4 +83,5 @@ if __name__ == '__main__':
     print("  GET    /jobs/:id   - Get job status")
     print("  GET    /health     - Health check")
     print("  GET    /metrics    - Queue stats")
-    app.run(debug=True, port=5000)
+
+    app.run(host= '0.0.0.0', port=8000, debug=True)

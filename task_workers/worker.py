@@ -38,26 +38,25 @@ class Worker:
         """
         signal.signal(signal.SIGINT, self.handle_shutdown)
         
-        print(f"{self.name} started...")
+        print(f"{self.name} Worker started...")
 
         while self.running:
             job = self.queue.dequeue()
-            if not job:
+            if job is None:
                 continue
 
-            job_id = job.get('id', 'uknown')
-            print(f"{self.name} processing job {job_id}...")
+            print(f"{self.name} processing job {job['id'][:8]}... (type: {job['type']}, attempt: {job['attempts'] + 1})")
 
             try:
                 result = process_job(job)
-                self.queue.complete_job(job_id, result)
-                print(f"{self.name} completed job {job_id}")
-            except Exception as e:
-                error_message = str(e)
-                self.queue.fail_job(job_id, error_message)
-                print(f"{self.name} failed job {job_id}: {error_message}")
+                self.queue.complete_job(job['id'], result)
+                print(f"{self.name} completed job {job['id'][:8]}")
 
-        print(f"{self.name} stopped")
+            except Exception as e:
+                self.queue.fail_job(job['id'], str(e))
+                print(f"{self.name} failed job {job['id'][:8]}: {e}")
+
+        print(f"{self.name} Worker stopped")
 
 
 if __name__ == "__main__":
