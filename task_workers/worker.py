@@ -1,5 +1,4 @@
 import sys
-sys.path.append('..')  # So Python can find queue module
 
 from task_queue.manager import QueueManager
 from task_workers.handlers import process_job
