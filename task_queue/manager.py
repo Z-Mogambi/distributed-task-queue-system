@@ -18,7 +18,7 @@ class QueueManager:
             port=redis_port, 
             decode_responses=True
             )
-        self.queue_key = "jobs:pending"
+        self.queue_key = "queue:pending"
     
     def enqueue(self, job_type: str, payload: Dict[str, Any], max_retries: int=3) -> str:
         """
