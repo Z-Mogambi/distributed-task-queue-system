@@ -3,12 +3,21 @@ import redis
 import json
 import uuid
 import time
+import os
 from typing import Optional, Dict, Any
 
 class QueueManager:
-    def __init__(self, host='localhost', port=6379):
+    def __init__(self, host=None, port=None):
         """Connect to Redis."""
-        self.redis = redis.Redis(host=host, port=port, decode_responses=True)
+
+        redis_host = host or os.getenv('REDIS_HOST', 'localhost')
+        redis_port = port or int(os.getenv('REDIS_PORT', 6379))
+
+        self.redis = redis.Redis(
+            host=redis_host, 
+            port=redis_port, 
+            decode_responses=True
+            )
         self.queue_key = "jobs:pending"
     
     def enqueue(self, job_type: str, payload: Dict[str, Any], max_retries: int=3) -> str:
