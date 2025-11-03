@@ -38,6 +38,7 @@ class Worker:
         signal.signal(signal.SIGINT, self.handle_shutdown)
         
         print(f"{self.name} Worker started...")
+        print(f"{self.name} is waiting for jobs...")
 
         while self.running:
             job = self.queue.dequeue()
