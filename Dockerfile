@@ -1,19 +1,16 @@
-FROM python:3.9-slim
+FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc libpq-dev && \
+    pip install --no-cache-dir -r requirements.txt && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy application code
-COPY task_queue/ ./task_queue/
-COPY task_workers/ ./task_workers/
-COPY task_api/ ./task_api/
+COPY . .
 
-# Set Python path so imports work
 ENV PYTHONPATH=/app
 
-# Default command (will be overridden by Render)
-CMD ["python", "task_api/server.py"]
+ENTRYPOINT ["python"]
+CMD ["task_api/server.py"]
