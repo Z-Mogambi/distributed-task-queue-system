@@ -1,18 +1,17 @@
 FROM python:3.9-slim
 
-# Set working directory - 
+# Set working directory
 WORKDIR /app
 
-# Install dependencies
+# Copy and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY task_queue/ ./task_queue/
-COPY task_workers/ ./task_workers/
+# Copy all project files
+COPY . /app
 
-# Set Python path
+# Ensure Python sees /app as root
 ENV PYTHONPATH=/app
 
-# Run worker
-CMD ["python", "task_workers/worker.py", "Worker-Docker"]
+# Start the worker using module syntax
+CMD ["python3", "-m", "task_workers.worker", "Worker-Docker"]
