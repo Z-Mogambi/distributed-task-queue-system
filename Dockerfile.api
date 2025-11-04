@@ -1,0 +1,21 @@
+FROM python:3.9-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY task_queue/ ./task_queue/
+COPY task_api/ ./task_api/
+
+# Set Python path
+ENV PYTHONPATH=/app
+
+# Expose port
+EXPOSE 8000
+
+# Run API
+CMD ["python", "task_api/server.py"]
