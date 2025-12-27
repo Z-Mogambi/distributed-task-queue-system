@@ -29,6 +29,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
+    image: task-queue-worker
     depends_on:
       redis:
         condition: service_healthy
@@ -39,9 +40,7 @@ services:
     command: ["python", "task_workers/worker.py", "Worker-1"]
 
   worker-2:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker
+    image: task-queue-worker
     depends_on:
       redis:
         condition: service_healthy
@@ -52,9 +51,7 @@ services:
     command: ["python", "task_workers/worker.py", "Worker-2"]
 
   worker-3:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker
+    image: task-queue-worker
     depends_on:
       redis:
         condition: service_healthy
