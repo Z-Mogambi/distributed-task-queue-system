@@ -1,5 +1,8 @@
 import sys
-sys.path.append('..')
+import os
+
+# Add project root to Python path to allow importing task_queue
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from task_queue.manager import QueueManager
 import time
