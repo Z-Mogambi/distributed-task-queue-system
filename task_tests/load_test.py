@@ -1,6 +1,7 @@
 import requests
 import time
 import argparse
+import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 API_URL = "http://api:8000/jobs"
@@ -22,17 +23,23 @@ def submit_job(job_type, payload):
         return (False, duration)
 
 def main():
-    parser = argparse.ArgumentParser(description="Task Queue Load Tester for Webhook Retries.")
-    parser.add_argument("--num-jobs", type=int, default=100, help="Total number of jobs to submit.")
-    parser.add_argument("--concurrency", type=int, default=10, help="Number of concurrent clients.")
-    parser.add_argument("--url", type=str, default="http://httpstat.us/503", help="URL for the webhook job (should be a failing one to test retries).")
+    parser = argparse.ArgumentParser(description="Task Queue Load Tester.")
+    parser.add_argument("--num-jobs", type=int, default=1000, help="Total number of jobs to submit.")
+    parser.add_argument("--concurrency", type=int, default=50, help="Number of concurrent clients.")
+    parser.add_argument("--job-type", type=str, default="calculation", choices=["calculation", "email", "flaky_service"], help="Type of job to submit.")
     args = parser.parse_args()
 
-    print(f"Starting webhook retry load test with {args.num_jobs} jobs and {args.concurrency} concurrent clients...")
-    print(f"Target URL: {args.url}")
+    print(f"Starting load test with {args.num_jobs} '{args.job_type}' jobs using {args.concurrency} concurrent clients...")
 
-    job_type = "flaky_service"
-    payload = {"url": args.url}
+    # Payloads for different job types
+    payloads = {
+        "calculation": {"numbers": [random.randint(1, 100) for _ in range(10)]},
+        "email": {"to": "stress-test@example.com"},
+        "flaky_service": {"url": "http://httpstat.us/200"}  # Success URL
+    }
+
+    job_type = args.job_type
+    payload = payloads[job_type]
     
     success_count = 0
     error_count = 0
@@ -41,6 +48,7 @@ def main():
     overall_start_time = time.time()
 
     with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
+        # Submit all jobs
         futures = [executor.submit(submit_job, job_type, payload) for _ in range(args.num_jobs)]
         
         for i, future in enumerate(as_completed(futures)):
@@ -72,7 +80,7 @@ def main():
         jobs_per_sec = success_count / overall_duration
         print(f"Throughput:           {jobs_per_sec:.2f} jobs/sec")
     print("=" * 50)
-    print("\nCheck the dashboard at http://localhost:8000 to see the jobs being retried.")
+    print("\nCheck the dashboard at http://localhost:8000 to see job processing status.")
 
 if __name__ == "__main__":
     main()
