@@ -9,6 +9,48 @@ from task_queue.manager import QueueManager
 app = Flask(__name__)
 queue = QueueManager()
 
+@app.route('/', methods=['GET'])
+def dashboard():
+    """Show a simple dashboard with queue stats."""
+    stats = queue.get_stats()
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Task Queue Dashboard</title>
+        <meta http-equiv="refresh" content="5">
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 40px; background-color: #f4f4f4; }}
+            h1 {{ color: #333; }}
+            .stats-container {{ display: flex; gap: 20px; }}
+            .stat-box {{ background-color: #fff; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+            .stat-box h2 {{ margin-top: 0; color: #555; }}
+            .stat-box .count {{ font-size: 3em; color: #007BFF; font-weight: bold; }}
+            .timestamp {{ margin-top: 30px; font-size: 0.9em; color: #888; }}
+        </style>
+    </head>
+    <body>
+        <h1>Task Queue Dashboard</h1>
+        <div class="stats-container">
+            <div class="stat-box">
+                <h2>Pending Jobs</h2>
+                <div class="count">{stats['pending']}</div>
+            </div>
+            <div class="stat-box">
+                <h2>Delayed Jobs</h2>
+                <div class="count">{stats['delayed']}</div>
+            </div>
+            <div class="stat-box">
+                <h2>Dead-Letter Jobs</h2>
+                <div class="count">{stats['dead_letter']}</div>
+            </div>
+        </div>
+        <div class="timestamp">Last updated: {time.strftime('%Y-%m-%d %H:%M:%S')}</div>
+    </body>
+    </html>
+    """
+    return html, 200
+
 @app.route('/health', methods=['GET'])
 def health():
     #health check
@@ -77,8 +119,9 @@ def metrics():
 
 if __name__ == '__main__':
     print("\nStarting Task Queue API...")
-    print("API running on http://localhost:5000")
+    print("API running on http://localhost:8000")
     print("\nEndpoints:")
+    print("  GET    /           - Dashboard")
     print("  POST   /jobs       - Submit job")
     print("  GET    /jobs/:id   - Get job status")
     print("  GET    /health     - Health check")

@@ -118,6 +118,14 @@ class QueueManager:
             return None
         return json.loads(job_data)
 
+    def get_stats(self) -> Dict[str, int]:
+        """Get statistics about the queues."""
+        return {
+            "pending": self.redis.llen(self.queue_key),
+            "delayed": self.redis.zcard(self.delayed_queue_key),
+            "dead_letter": self.redis.llen("queue:dead_letter")
+        }
+
     def requeue_delayed_jobs(self) -> int:
         """Move jobs from delayed queue back to pending if their retry time has come."""
         now = time.time()
