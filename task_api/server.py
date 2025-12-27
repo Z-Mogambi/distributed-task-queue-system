@@ -44,6 +44,14 @@ def dashboard():
                 <h2>Dead-Letter Jobs</h2>
                 <div class="count">{stats['dead_letter']}</div>
             </div>
+            <div class="stat-box">
+                <h2>Completed Jobs</h2>
+                <div class="count" style="color: #28a745;">{stats.get('completed', 0)}</div>
+            </div>
+            <div class="stat-box">
+                <h2>Failed Jobs</h2>
+                <div class="count" style="color: #dc3545;">{stats.get('failed', 0)}</div>
+            </div>
         </div>
         <div class="timestamp">Last updated: {time.strftime('%Y-%m-%d %H:%M:%S')}</div>
     </body>

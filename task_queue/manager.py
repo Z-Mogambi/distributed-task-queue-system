@@ -108,6 +108,7 @@ class QueueManager:
         
         self.redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
         
+        self.redis.incr("stats:completed")
         return True
     
     def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
@@ -120,10 +121,15 @@ class QueueManager:
 
     def get_stats(self) -> Dict[str, int]:
         """Get statistics about the queues."""
+        completed_count = self.redis.get("stats:completed")
+        failed_count = self.redis.get("stats:failed")
+
         return {
             "pending": self.redis.llen(self.queue_key),
             "delayed": self.redis.zcard(self.delayed_queue_key),
-            "dead_letter": self.redis.llen("queue:dead_letter")
+            "dead_letter": self.redis.llen("queue:dead_letter"),
+            "completed": int(completed_count) if completed_count else 0,
+            "failed": int(failed_count) if failed_count else 0,
         }
 
     def requeue_delayed_jobs(self) -> int:
@@ -202,6 +208,7 @@ class QueueManager:
             
             # Move to dead-letter queue
             self.redis.lpush("queue:dead_letter", job_id)
+            self.redis.incr("stats:failed")
 
             print(f"Job {job_id[:8]} permanently failed after {current_attempts} attempts.")
             return False
