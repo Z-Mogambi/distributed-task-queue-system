@@ -61,5 +61,15 @@ services:
       - REDIS_PORT=6379
     command: ["python", "task_workers/worker.py", "Worker-3"]
 
+  load_test:
+    build:
+      context: .
+      dockerfile: Dockerfile.load_test
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      - PYTHONUNBUFFERED=1
+
 volumes:
   redis-data:

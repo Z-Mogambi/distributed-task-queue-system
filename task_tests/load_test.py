@@ -3,7 +3,7 @@ import time
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-API_URL = "http://localhost:8000/jobs"
+API_URL = "http://api:8000/jobs"
 
 def submit_job(job_type, payload):
     """Submits a single job to the API and returns the response time and status."""
