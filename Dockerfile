@@ -8,7 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pip install --no-cache-dir -r requirements.txt && \
     rm -rf /var/lib/apt/lists/*
 
-COPY . .
+# Copy only the necessary application code
+COPY task_queue/ ./task_queue/
+COPY task_api/ ./task_api/
 
 ENV PYTHONPATH=/app
 
