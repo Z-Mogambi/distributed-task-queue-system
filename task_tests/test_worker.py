@@ -5,35 +5,31 @@ from task_queue.manager import QueueManager
 import time
 
 def main():
-    print("Submitting test jobs to queue...\n")
+    print("🚀 Starting Webhook Retry and Scale Test\n")
     
     queue = QueueManager()
     
-    # Submit 5 test jobs
-    jobs = [
-        ("email", {"to": "alice@example.com", "subject": "Welcome", "body": "Hello Alice!"}),
-        ("calculation", {"numbers": [1, 2, 3, 4, 5]}),
-        ("image_processing", {"image_url": "https://example.com/photo.jpg", "operations": ["resize", "compress"]}),
-        ("email", {"to": "bob@example.com", "subject": "Update", "body": "Hello Bob!"}),
-        ("calculation", {"numbers": [10, 20, 30, 40, 50]}),
-    ]
+    job_type = "flaky_service"
+    payload = {"url": "http://httpstat.us/503"}
+    num_jobs = 200
     
-    for job_type, payload in jobs:
+    print(f"Submitting {num_jobs} jobs of type '{job_type}'...")
+    
+    start_time = time.time()
+    for i in range(num_jobs):
         job_id = queue.enqueue(job_type, payload)
-        print(f"Submitted {job_type} job: {job_id[:8]}...")
+        print(f"  Submitted job {i+1}/{num_jobs}: {job_id[:12]}...")
+        
+    end_time = time.time()
+    duration = end_time - start_time
     
-    print(f"\nTotal jobs submitted: {len(jobs)}")
-    print("\n Now start the worker in another terminal:")
-    print("   cd worker")
-    print("   python worker.py")
-    print("\n Watching jobs get processed...\n")
+    print(f"\n✅ All {num_jobs} jobs submitted in {duration:.2f} seconds.")
     
-    # Monitor for 30 seconds
-    for i in range(30):
-        time.sleep(1)
-        # query Redis here to check job statuses?
-    
-    print("\n Test complete!")
+    if duration > 0:
+        jobs_per_second = num_jobs / duration
+        print(f"   (Throughput: {jobs_per_second:.2f} jobs/sec)")
+
+    print("\nNow, start the worker(s) to process the jobs and observe retries.")
 
 if __name__ == "__main__":
     main()
