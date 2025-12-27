@@ -1,5 +1,6 @@
 import time
 import random
+import requests
 
 def handle_email(payload):
     """
@@ -87,16 +88,35 @@ def process_job(job):
     return handler(payload)
 
 def handle_flaky_service(payload):
-    """simulating a flanky external service that has 50% failure testing retry logic"""
-    print("Calling external service...")
-    time.sleep(1)
+    """
+    Handles jobs that call an external webhook that may fail.
+    This simulates calling a service that is unreliable.
+    """
+    url = payload.get("url")
+    if not url:
+        raise ValueError("URL is missing from payload for flaky_service")
 
-    if random.random() < 0.5:
-        raise Exception("Network timeout: external service unreachable")
+    print(f"Calling external service webhook: {url}...")
     
-    return{
-        "status": "success",
-        "response": "service call succeeded",
-        "timestamp": int(time.time())
-    }
+    try:
+        # Make the actual HTTP request with a timeout
+        response = requests.get(url, timeout=10)
+        
+        # Raise an exception for bad status codes (4xx or 5xx)
+        response.raise_for_status()
+        
+        return {
+            "status": "success",
+            "response": {
+                "status_code": response.status_code,
+                "headers": dict(response.headers),
+                "body": response.text[:250] # Truncate body to avoid storing large responses
+            },
+            "timestamp": int(time.time())
+        }
+    except requests.exceptions.RequestException as e:
+        # This will catch connection errors, timeouts, and bad status codes,
+        # triggering the fail_job logic in the worker.
+        raise Exception(f"External service call failed: {e}")
+
 JOB_HANDLERS["flaky_service"] = handle_flaky_service
