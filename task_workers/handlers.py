@@ -87,6 +87,41 @@ def process_job(job):
 
     return handler(payload)
 
+def handle_webhook(payload):
+    """
+    Handles sending a webhook to an external service.
+    Expects 'url' and 'data' in the payload.
+    """
+    url = payload.get("url")
+    if not url:
+        raise ValueError("URL is missing from payload for webhook")
+
+    data = payload.get("data", {})
+
+    print(f"Sending webhook to: {url}...")
+
+    try:
+        # Make the actual HTTP POST request with a timeout
+        response = requests.post(url, json=data, timeout=10)
+
+        # Raise an exception for bad status codes (4xx or 5xx)
+        response.raise_for_status()
+
+        return {
+            "status": "success",
+            "response": {
+                "status_code": response.status_code,
+                "headers": dict(response.headers),
+                "body": response.text[:250] # Truncate body to avoid storing large responses
+            },
+            "timestamp": int(time.time())
+        }
+    except requests.exceptions.RequestException as e:
+        # This will catch connection errors, timeouts, and bad status codes,
+        # triggering the fail_job logic in the worker.
+        raise Exception(f"Webhook call failed: {e}")
+
+
 def handle_flaky_service(payload):
     """
     Handles jobs that call an external webhook that may fail.
@@ -119,4 +154,5 @@ def handle_flaky_service(payload):
         # triggering the fail_job logic in the worker.
         raise Exception(f"External service call failed: {e}")
 
+JOB_HANDLERS["webhook"] = handle_webhook
 JOB_HANDLERS["flaky_service"] = handle_flaky_service
