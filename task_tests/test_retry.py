@@ -1,17 +1,18 @@
 import sys
 sys.path.append('..')
 
-from task_queue.manager import QueueManagermanager
+from task_queue.manager import QueueManager
 import time
 
 def main():
     print("Testing Retry Logic\n")
     
-    queue = QueueManagermanager()
+    queue = QueueManager()
     
     # Submiting a flaky job that will fail and retry
     print("Submitting flaky job (will fail ~50% of the time)...")
-    job_id = queue.enqueue("flaky_service", {"data": "test"}, max_retries=3)
+    # This URL has a 50% chance of returning 200 OK and 50% chance of 503 Service Unavailable
+    job_id = queue.enqueue("flaky_service", {"url": "http://httpstat.us/random/200,503"}, max_retries=3)
     print(f"Job submitted: {job_id[:8]}\n")
     
     print("   Start worker in another terminal to see retry behavior")

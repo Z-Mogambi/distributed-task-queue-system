@@ -15,12 +15,11 @@ def main():
     
     # Test 1: Enqueue a job
     print("=" * 50)
-    print("Test 1: Enqueue a job")
+    print("Test 1: Enqueue a webhook job")
     print("=" * 50)
-    job_id = queue.enqueue("email", {
-        "to": "test@example.com",
-        "subject": "Hello World",
-        "body": "This is a test email"
+    job_id = queue.enqueue("webhook", {
+        "url": "http://httpstat.us/200",
+        "data": {"message": "Hello from test_queue!"}
     })
     print(f"Created job: {job_id}\n")
     time.sleep(1)
@@ -64,25 +63,26 @@ def main():
     print("=" * 50)
     print("Test 5: Enqueue and fail a job")
     print("=" * 50)
-    job_id = queue.enqueue("image_processing", {
-        "image_url": "https://example.com/image.jpg",
-        "operations": ["resize", "compress"]
+    job_id = queue.enqueue("webhook", {
+        "url": "http://httpstat.us/500",
+        "data": {"message": "This will fail"}
     })
     print(f"Created job: {job_id}")
     
     job = queue.dequeue()
     print(f"Dequeued job: {job['id'][:8]}...")
     
-    queue.fail_job(job['id'], "Network timeout: Could not download image")
+    # The worker would process this and it would fail. Here we manually fail it for test simplicity.
+    queue.fail_job(job['id'], "Simulated worker failure: Internal Server Error")
     print(f"Job marked as failed\n")
     
     # Test 6: Enqueue multiple jobs
     print("=" * 50)
-    print("Test 6: Enqueue multiple jobs")
+    print("Test 6: Enqueue multiple webhook jobs")
     print("=" * 50)
     job_ids = []
     for i in range(3):
-        job_id = queue.enqueue("calculation", {"numbers": [i, i+1, i+2]})
+        job_id = queue.enqueue("webhook", {"url": f"http://httpstat.us/200?i={i}"})
         job_ids.append(job_id)
         print(f"Created job {i+1}: {job_id[:8]}...")
     

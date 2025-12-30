@@ -26,15 +26,14 @@ def main():
     parser = argparse.ArgumentParser(description="Task Queue Load Tester.")
     parser.add_argument("--num-jobs", type=int, default=1000, help="Total number of jobs to submit.")
     parser.add_argument("--concurrency", type=int, default=50, help="Number of concurrent clients.")
-    parser.add_argument("--job-type", type=str, default="calculation", choices=["calculation", "email", "flaky_service"], help="Type of job to submit.")
+    parser.add_argument("--job-type", type=str, default="webhook", choices=["webhook", "flaky_service"], help="Type of job to submit.")
     args = parser.parse_args()
 
     print(f"Starting load test with {args.num_jobs} '{args.job_type}' jobs using {args.concurrency} concurrent clients...")
 
     # Payloads for different job types
     payloads = {
-        "calculation": {"numbers": [random.randint(1, 100) for _ in range(10)]},
-        "email": {"to": "stress-test@example.com"},
+        "webhook": {"url": "http://httpstat.us/200"},
         "flaky_service": {"url": "http://httpstat.us/200"}  # Success URL
     }
 
