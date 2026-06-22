@@ -119,7 +119,7 @@ def metrics():
     Get queue metrics by counting jobs in pending queue, returning JSON with queue depth
     and status 200
     """
-    pending_count = queue.redis.llen("jobs:pending")
+    pending_count = queue.redis.llen(queue.queue_key)
     return jsonify({
         "pending": pending_count,
         "timestamp": int(time.time())
