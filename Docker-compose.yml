@@ -37,6 +37,10 @@ services:
       - PYTHONUNBUFFERED=1
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - output-data:/app/output
     command: ["python", "task_workers/worker.py", "Worker-1"]
 
   worker-2:
@@ -48,6 +52,10 @@ services:
       - PYTHONUNBUFFERED=1
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - output-data:/app/output
     command: ["python", "task_workers/worker.py", "Worker-2"]
 
   worker-3:
@@ -59,6 +67,10 @@ services:
       - PYTHONUNBUFFERED=1
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - output-data:/app/output
     command: ["python", "task_workers/worker.py", "Worker-3"]
 
   load_test:
@@ -73,3 +85,4 @@ services:
 
 volumes:
   redis-data:
+  output-data:

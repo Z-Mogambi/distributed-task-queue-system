@@ -1,18 +1,16 @@
 FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Copy and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy only the necessary application code
 COPY task_queue/ ./task_queue/
 COPY task_workers/ ./task_workers/
 
-# Ensure Python sees /app as root
+# Directory for processed image output
+RUN mkdir -p /app/output
+
 ENV PYTHONPATH=/app
 
-# Start the worker using module syntax
-CMD ["python", "-m", "task_workers.worker", "Worker-Docker"]
+CMD ["python", "task_workers/worker.py", "Worker-Docker"]
