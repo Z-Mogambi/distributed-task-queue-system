@@ -1,15 +1,14 @@
 import sys
 import os
 
-# Add project root to Python path to allow importing from task_queue
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import time
+import signal
+import requests
 from concurrent.futures import ThreadPoolExecutor
 
 from task_queue.manager import QueueManager
 from task_workers.handlers import process_job
-import signal
 
 class Worker:
     def __init__(self, name="Worker-1", max_workers=10):
@@ -26,6 +25,26 @@ class Worker:
         self.running = False
         self.executor.shutdown(wait=True)
 
+    def _fire_callback(self, job, data, success):
+        """POST the job result to callback_url if one was provided."""
+        callback_url = job.get("callback_url")
+        if not callback_url:
+            return
+        try:
+            requests.post(
+                callback_url,
+                json={
+                    "job_id": job["id"],
+                    "type": job["type"],
+                    "status": "completed" if success else "failed",
+                    "result": data,
+                },
+                timeout=5,
+            )
+            print(f"{self.name} callback fired for job {job['id'][:8]} -> {callback_url}")
+        except Exception as e:
+            print(f"{self.name} callback failed for job {job['id'][:8]}: {e}")
+
     def _process_job_task(self, job):
         """Task executed by a thread pool worker to process a single job."""
         print(f"{self.name} processing job {job['id'][:8]}... (type: {job['type']}, attempt: {job['attempts'] + 1})")
@@ -33,8 +52,11 @@ class Worker:
             result = process_job(job)
             self.queue.complete_job(job['id'], result)
             print(f"{self.name} completed job {job['id'][:8]}")
+            self._fire_callback(job, result, success=True)
         except Exception as e:
-            self.queue.fail_job(job['id'], str(e))
+            still_retrying = self.queue.fail_job(job['id'], str(e))
+            if not still_retrying:
+                self._fire_callback(job, {"error": str(e)}, success=False)
          
     def run(self):
         """

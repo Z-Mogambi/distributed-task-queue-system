@@ -86,18 +86,18 @@ def create_job():
         return jsonify({"error": "missing required field: 'type'"}), 400
     if not payload:
         return jsonify({"error": "missing required field: 'payload'"}), 400
-    
-    #validate if job_type is supported?
 
-    #enqueueing the job
+    callback_url = data.get("callback_url")  # optional
+
     try:
-        print("about to enqueu job") #debug
-        job_id = queue.enqueue(job_type, payload)
-        print(f"job enqueued with ID: {job_id}") #debug
+        print("about to enqueue job")
+        job_id = queue.enqueue(job_type, payload, callback_url=callback_url)
+        print(f"job enqueued with ID: {job_id}")
         return jsonify({
             "job_id": job_id,
             "status": "queued",
-            "type": job_type
+            "type": job_type,
+            **({"callback_url": callback_url} if callback_url else {}),
         }), 201
     except Exception as e:
         print(f"error enqueueing: {e}") #debug

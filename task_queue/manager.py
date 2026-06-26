@@ -25,20 +25,10 @@ class QueueManager:
         self.queue_key = "queue:pending"
         self.delayed_queue_key = "queue:delayed"
     
-    def enqueue(self, job_type: str, payload: Dict[str, Any], max_retries: int=3) -> str:
-        """
-        Add a job to the queue.
-        
-        TODO for you:
-        1. Generate a unique job_id (use uuid.uuid4())
-        2. Create a job dict with: id, type, payload, status="pending", created_at
-        3. Store job data: redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
-        4. Add job_id to queue: redis.lpush(self.queue_key, job_id)
-        5. Return job_id
-        """
-        #my code
+    def enqueue(self, job_type: str, payload: Dict[str, Any], max_retries: int = 3, callback_url: Optional[str] = None) -> str:
+        """Add a job to the queue and return its ID."""
         job_id = uuid.uuid4()
-        
+
         job_dict = {
             "id": str(job_id),
             "type": job_type,
@@ -47,7 +37,8 @@ class QueueManager:
             "created_at": int(time.time()),
             "attempts": 0,
             "max_retries": max_retries,
-            "last_error": None
+            "last_error": None,
+            "callback_url": callback_url,
         }
         
         self.redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
