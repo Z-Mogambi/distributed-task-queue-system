@@ -26,15 +26,18 @@ def main():
     parser = argparse.ArgumentParser(description="Task Queue Load Tester.")
     parser.add_argument("--num-jobs", type=int, default=1000, help="Total number of jobs to submit.")
     parser.add_argument("--concurrency", type=int, default=50, help="Number of concurrent clients.")
-    parser.add_argument("--job-type", type=str, default="webhook", choices=["webhook", "flaky_service"], help="Type of job to submit.")
+    parser.add_argument("--job-type", type=str, default="calculation",
+                        choices=["email", "image_processing", "calculation", "document_summary"],
+                        help="Type of job to submit.")
     args = parser.parse_args()
 
-    print(f"Starting load test with {args.num_jobs} '{args.job_type}' jobs using {args.concurrency} concurrent clients...")
+    print(f"Starting load test: {args.num_jobs} '{args.job_type}' jobs, {args.concurrency} concurrent clients...")
 
-    # Payloads for different job types
     payloads = {
-        "webhook": {"url": "http://httpstat.us/200"},
-        "flaky_service": {"url": "http://httpstat.us/200"}  # Success URL
+        "email":            {"to": "loadtest@example.com", "subject": "Load Test", "body": "Batch"},
+        "image_processing": {"image_url": "https://picsum.photos/1200/800", "operations": ["resize", "compress"]},
+        "calculation":      {"numbers": list(range(1, 101))},
+        "document_summary": {"url": "https://en.wikipedia.org/wiki/Redis"},
     }
 
     job_type = args.job_type
