@@ -42,17 +42,17 @@ A production-grade distributed task queue built with Python, Redis, and Flask. S
 - Supports multiple concurrent instances
 
 **Job Handlers** (`task_workers/handlers.py`)
-- Email delivery simulation (2s processing time)
-- Image processing simulation (3s processing time)
-- Mathematical calculations (actual computation)
-- Flaky service (50% failure rate for testing retry logic)
+- Email delivery via Resend API
+- Image processing (download, resize, compress, grayscale) via Pillow
+- Mathematical calculations (sum, average, min, max)
+- Document summarization (fetch URL, extract text, summarize with Claude)
 
 ### Data Flow
 
 1. Client submits job via `POST /jobs` endpoint
 2. API validates request and calls `QueueManager.enqueue()`
 3. Job metadata stored in Redis hash `job:{id}`
-4. Job ID added to Redis list `jobs:pending`
+4. Job ID added to Redis list `queue:pending`
 5. Worker atomically pops job using `BRPOP` (blocking, 5s timeout)
 6. Worker processes job with appropriate handler
 7. On success: Mark complete, store result
@@ -63,7 +63,7 @@ A production-grade distributed task queue built with Python, Redis, and Flask. S
 - **Language**: Python 3.9+ (tested with 3.13.6)
 - **Queue/Cache**: Redis 5.0+ 
 - **API Framework**: Flask 3.0
-- **Libraries**: redis-py, Flask, uuid
+- **Libraries**: redis-py, Flask, resend, Pillow, anthropic, beautifulsoup4
 
 ## Installation
 
@@ -129,15 +129,9 @@ python3 test_queue.py
 # Test worker processing
 python3 test_worker.py
 
-# Test retry logic (submit flaky jobs)
-for i in {1..5}; do
-  curl -X POST http://localhost:8000/jobs \
-    -H "Content-Type: application/json" \
-    -d '{"type":"flaky_service","payload":{"test_id":'$i'}}'
-done
+# Test retry logic
+python3 test_retry.py
 ```
-
-**Watch workers retry failed jobs automatically!**
 
 ## Design Decisions
 
