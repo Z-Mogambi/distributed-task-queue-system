@@ -23,21 +23,12 @@ class QueueManager:
             decode_responses=True
             )
         self.queue_key = "queue:pending"
+        self.delayed_queue_key = "queue:delayed"
     
-    def enqueue(self, job_type: str, payload: Dict[str, Any], max_retries: int=3) -> str:
-        """
-        Add a job to the queue.
-        
-        TODO for you:
-        1. Generate a unique job_id (use uuid.uuid4())
-        2. Create a job dict with: id, type, payload, status="pending", created_at
-        3. Store job data: redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
-        4. Add job_id to queue: redis.lpush(self.queue_key, job_id)
-        5. Return job_id
-        """
-        #my code
+    def enqueue(self, job_type: str, payload: Dict[str, Any], max_retries: int = 3, callback_url: Optional[str] = None) -> str:
+        """Add a job to the queue and return its ID."""
         job_id = uuid.uuid4()
-        
+
         job_dict = {
             "id": str(job_id),
             "type": job_type,
@@ -46,7 +37,8 @@ class QueueManager:
             "created_at": int(time.time()),
             "attempts": 0,
             "max_retries": max_retries,
-            "last_error": None
+            "last_error": None,
+            "callback_url": callback_url,
         }
         
         self.redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
@@ -107,6 +99,7 @@ class QueueManager:
         
         self.redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
         
+        self.redis.incr("stats:completed")
         return True
     
     def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
@@ -116,6 +109,46 @@ class QueueManager:
         if job_data is None:
             return None
         return json.loads(job_data)
+
+    def get_stats(self) -> Dict[str, int]:
+        """Get statistics about the queues."""
+        completed_count = self.redis.get("stats:completed")
+        failed_count = self.redis.get("stats:failed")
+
+        return {
+            "pending": self.redis.llen(self.queue_key),
+            "delayed": self.redis.zcard(self.delayed_queue_key),
+            "dead_letter": self.redis.llen("queue:dead_letter"),
+            "completed": int(completed_count) if completed_count else 0,
+            "failed": int(failed_count) if failed_count else 0,
+        }
+
+    def requeue_delayed_jobs(self) -> int:
+        """Move jobs from delayed queue back to pending if their retry time has come."""
+        now = time.time()
+        
+        # This Lua script atomically moves ready jobs from the delayed zset to the pending list.
+        lua_script = """
+            local jobs = redis.call('zrangebyscore', KEYS[1], '-inf', ARGV[1])
+            if #jobs == 0 then return 0 end
+            redis.call('zrem', KEYS[1], unpack(jobs))
+            redis.call('lpush', KEYS[2], unpack(jobs))
+            return #jobs
+        """
+        try:
+            # redis-py eval signature: script, numkeys, *keys_and_args
+            requeued_count = self.redis.eval(lua_script, 2, self.delayed_queue_key, self.queue_key, now)
+            return requeued_count or 0
+        except Exception:
+            # Fallback for older Redis versions or other issues.
+            job_ids = self.redis.zrangebyscore(self.delayed_queue_key, 0, now)
+            if not job_ids:
+                return 0
+            pipe = self.redis.pipeline()
+            pipe.zrem(self.delayed_queue_key, *job_ids)
+            pipe.lpush(self.queue_key, *job_ids)
+            results = pipe.execute()
+            return results[1] # Return count from lpush
     
     def fail_job(self, job_id: str, error: str) -> bool:
         """marking job as failed and retrying in under max_retries"""
@@ -136,29 +169,37 @@ class QueueManager:
         
         #retry logic
         if current_attempts < max_retries:
-            #exponential backoff delay
-            base_delay = 1000
-            max_delay = 6000
-            jitter = random.uniform(0, 1000)
-            delay = min((base_delay * (2 ** current_attempts)) + jitter, max_delay)
+            # Exponential backoff delay in seconds
+            base_delay_s = 1
+            max_delay_s = 60
+            jitter_s = random.uniform(0, 1)
+            delay_s = min(
+                (base_delay_s * (2 ** (current_attempts - 1))) + jitter_s, 
+                max_delay_s
+            )
             
-            #updating status and saving updated job
+            retry_at = time.time() + delay_s
+            
+            # Update job status and save it
             job_dict["status"] = "retrying"
-            job_dict["retry_at"] = time.time() + (delay/1000)
+            job_dict["retry_at"] = retry_at
             self.redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
 
-            time.sleep(delay/1000)
-            
-            self.redis.lpush(self.queue_key, job_id)
+            # Add to delayed queue (sorted set) to be picked up later
+            self.redis.zadd(self.delayed_queue_key, {job_id: retry_at})
 
-            print(f"job {job_id[:8]} failed (attempt {current_attempts}/{max_retries}). Retrying...")
+            print(f"Job {job_id[:8]} failed (attempt {current_attempts}/{max_retries}). Retrying in {delay_s:.2f}s...")
             return True
         else:
+            # Job has failed permanently
             job_dict["status"] = "failed"
             job_dict["failed_at"] = int(time.time())
 
             self.redis.hset(f"job:{job_id}", "data", json.dumps(job_dict))
+            
+            # Move to dead-letter queue
             self.redis.lpush("queue:dead_letter", job_id)
+            self.redis.incr("stats:failed")
 
-            print(f"Job {job_id[:8]}, parmanently failed after {current_attempts} attemps")
+            print(f"Job {job_id[:8]} permanently failed after {current_attempts} attempts.")
             return False

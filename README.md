@@ -1,25 +1,12 @@
 # Distributed Task Queue System
 
-[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://distributed-task-queue-system-production.up.railway.app/health)
 [![Docker](https://img.shields.io/badge/docker-ready-blue)](https://hub.docker.com)
 
-**[Live Demo](https://distributed-task-queue-system-production.up.railway.app/health)** | [GitHub](https://github.com/Z-Mogambi/distributed-task-queue-system)
+[GitHub](https://github.com/Z-Mogambi/distributed-task-queue-system)
 
-A production-grade distributed task queue built with Python, Redis, and Flask. Supports concurrent job processing, automatic retry with exponential backoff, and horizontal scaling. Deployed on Railway with Docker
+A production-grade distributed task queue built with Python, Redis, and Flask. Supports concurrent job processing, automatic retry with exponential backoff, and horizontal scaling.
 
 ---
-## Live Deployment
-
-**Production URL**: [https://distributed-task-queue-system-production.up.railway.app](https://distributed-task-queue-system-production.up.railway.app)
-
-Try it:
-
-```bash
-curl -X POST https://distributed-task-queue-system-production.up.railway.app/jobs \
-  -H "Content-Type: application/json" \
-  -d '{"type":"calculation","payload":{"numbers":[1,2,3,4,5]}}'
-
-![Architecture](docs/architecture.png)
 
 ## Features
 

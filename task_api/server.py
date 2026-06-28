@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify # type: ignore
+import os
 import time
 import sys
 
@@ -8,6 +9,56 @@ from task_queue.manager import QueueManager
 
 app = Flask(__name__)
 queue = QueueManager()
+
+@app.route('/', methods=['GET'])
+def dashboard():
+    """Show a simple dashboard with queue stats."""
+    stats = queue.get_stats()
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Task Queue Dashboard</title>
+        <meta http-equiv="refresh" content="5">
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 40px; background-color: #f4f4f4; }}
+            h1 {{ color: #333; }}
+            .stats-container {{ display: flex; gap: 20px; }}
+            .stat-box {{ background-color: #fff; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+            .stat-box h2 {{ margin-top: 0; color: #555; }}
+            .stat-box .count {{ font-size: 3em; color: #007BFF; font-weight: bold; }}
+            .timestamp {{ margin-top: 30px; font-size: 0.9em; color: #888; }}
+        </style>
+    </head>
+    <body>
+        <h1>Task Queue Dashboard</h1>
+        <div class="stats-container">
+            <div class="stat-box">
+                <h2>Pending Jobs</h2>
+                <div class="count">{stats['pending']}</div>
+            </div>
+            <div class="stat-box">
+                <h2>Delayed Jobs</h2>
+                <div class="count">{stats['delayed']}</div>
+            </div>
+            <div class="stat-box">
+                <h2>Dead-Letter Jobs</h2>
+                <div class="count">{stats['dead_letter']}</div>
+            </div>
+            <div class="stat-box">
+                <h2>Completed Jobs</h2>
+                <div class="count" style="color: #28a745;">{stats.get('completed', 0)}</div>
+            </div>
+            <div class="stat-box">
+                <h2>Failed Jobs</h2>
+                <div class="count" style="color: #dc3545;">{stats.get('failed', 0)}</div>
+            </div>
+        </div>
+        <div class="timestamp">Last updated: {time.strftime('%Y-%m-%d %H:%M:%S')}</div>
+    </body>
+    </html>
+    """
+    return html, 200
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -36,18 +87,18 @@ def create_job():
         return jsonify({"error": "missing required field: 'type'"}), 400
     if not payload:
         return jsonify({"error": "missing required field: 'payload'"}), 400
-    
-    #validate if job_type is supported?
 
-    #enqueueing the job
+    callback_url = data.get("callback_url")  # optional
+
     try:
-        print("about to enqueu job") #debug
-        job_id = queue.enqueue(job_type, payload)
-        print(f"job enqueued with ID: {job_id}") #debug
+        print("about to enqueue job")
+        job_id = queue.enqueue(job_type, payload, callback_url=callback_url)
+        print(f"job enqueued with ID: {job_id}")
         return jsonify({
             "job_id": job_id,
             "status": "queued",
-            "type": job_type
+            "type": job_type,
+            **({"callback_url": callback_url} if callback_url else {}),
         }), 201
     except Exception as e:
         print(f"error enqueueing: {e}") #debug
@@ -69,7 +120,7 @@ def metrics():
     Get queue metrics by counting jobs in pending queue, returning JSON with queue depth
     and status 200
     """
-    pending_count = queue.redis.llen("jobs:pending")
+    pending_count = queue.redis.llen(queue.queue_key)
     return jsonify({
         "pending": pending_count,
         "timestamp": int(time.time())
@@ -77,11 +128,12 @@ def metrics():
 
 if __name__ == '__main__':
     print("\nStarting Task Queue API...")
-    print("API running on http://localhost:5000")
+    print("API running on http://localhost:8000")
     print("\nEndpoints:")
+    print("  GET    /           - Dashboard")
     print("  POST   /jobs       - Submit job")
     print("  GET    /jobs/:id   - Get job status")
     print("  GET    /health     - Health check")
     print("  GET    /metrics    - Queue stats")
 
-    app.run(host= '0.0.0.0', port=8000, debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), debug=False)
