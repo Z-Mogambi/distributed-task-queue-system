@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify # type: ignore
+import os
 import time
 import sys
 
@@ -135,4 +136,4 @@ if __name__ == '__main__':
     print("  GET    /health     - Health check")
     print("  GET    /metrics    - Queue stats")
 
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), debug=False)

@@ -1,0 +1,5 @@
+[services.api]
+  dockerfile = "Dockerfile.api"
+
+[services.worker]
+  dockerfile = "Dockerfile.worker"
