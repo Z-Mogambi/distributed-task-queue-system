@@ -59,22 +59,6 @@ class Worker:
                 self._fire_callback(job, {"error": str(e)}, success=False)
          
     def run(self):
-        """
-        Main worker loop.
-        
-        TODO:
-        1. Register signal handler for SIGINT (Ctrl+C)
-        2. Print "Worker started" message
-        3. Loop while self.running is True:
-           a. Dequeue job (this blocks for 5 seconds)
-           b. If no job, continue (just loop again)
-           c. If job exists:
-              - Print "Processing job {job_id}..."
-              - Try to process it
-              - If success: complete_job with result
-              - If error: fail_job with error message
-        4. Print "Worker stopped" when loop exits
-        """
         signal.signal(signal.SIGINT, self.handle_shutdown)
         
         print(f"{self.name} started with {self.executor._max_workers} threads...")

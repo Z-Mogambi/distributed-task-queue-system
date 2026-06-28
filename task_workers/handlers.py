@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 import requests
 import resend
 from PIL import Image
@@ -70,7 +71,7 @@ def handle_image_processing(payload):
 
     output_dir = os.path.join(os.path.dirname(__file__), "..", "output")
     os.makedirs(output_dir, exist_ok=True)
-    output_filename = f"processed_{int(time.time())}.jpg"
+    output_filename = f"processed_{uuid.uuid4().hex}.jpg"
     output_path = os.path.join(output_dir, output_filename)
 
     quality = 75 if "compress" in operations else 95
@@ -99,9 +100,10 @@ def handle_calculation(payload):
     numbers = payload.get("numbers", [])
     if not numbers:
         return {"sum": 0, "average": 0, "min": None, "max": None}
+    total = sum(numbers)
     return {
-        "sum": sum(numbers),
-        "average": sum(numbers) / len(numbers),
+        "sum": total,
+        "average": total / len(numbers),
         "min": min(numbers),
         "max": max(numbers),
     }
