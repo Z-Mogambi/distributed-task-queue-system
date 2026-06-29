@@ -67,33 +67,53 @@ A production-grade distributed task queue built with Python, Redis, and Flask. S
 
 ## Installation
 
-### Prerequisites
-- Python 3.9+
-- Redis server
+### Docker (recommended)
 
-### Setup
+**Prerequisites:** Docker + Docker Compose
+
 ```bash
-# Clone repository
-git clone https://github.com/Z-Mogambi/task-queue-system.git
-cd task-queue-system
+git clone https://github.com/Z-Mogambi/distributed-task-queue-system.git
+cd distributed-task-queue-system
+```
 
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+Create a `.env` file with your API keys:
+```
+RESEND_API_KEY=your_key_here
+ANTHROPIC_API_KEY=your_key_here
+```
 
-# Install dependencies
+Start the full stack (Redis, API, 3 workers):
+```bash
+docker compose up --build
+```
+
+Dashboard available at **http://localhost:8000**
+
+To scale workers:
+```bash
+docker compose up --scale worker-1=5
+```
+
+---
+
+### Local Setup
+
+**Prerequisites:** Python 3.9+, Redis
+
+```bash
+git clone https://github.com/Z-Mogambi/distributed-task-queue-system.git
+cd distributed-task-queue-system
+
 pip install -r requirements.txt
 
-# Start Redis (if not running)
+# Start Redis
 redis-server
 
 # Terminal 1: Start API
-cd task_api
-python3 server.py
+python3 task_api/server.py
 
 # Terminal 2: Start worker(s)
-cd task_workers
-python3 worker.py Worker-1
+python3 task_workers/worker.py Worker-1
 ```
 
 ##  Usage
