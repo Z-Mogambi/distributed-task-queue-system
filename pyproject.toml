@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taskqueue"
+version = "1.0.0"
+description = "Redis-backed distributed task queue with retry, backoff, and dead-letter support"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = [
+    "redis>=5.0.1,<6",
+    "requests>=2.31.0,<3",
+]
+
+[project.urls]
+Homepage = "https://github.com/Z-Mogambi/distributed-task-queue-system"
+
+[tool.setuptools]
+# Explicit: the repo root also holds the example app (task_api, task_workers,
+# task_tests), which flat-layout autodiscovery would reject.
+packages = ["taskqueue"]
