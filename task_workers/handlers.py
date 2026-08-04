@@ -9,6 +9,11 @@ from bs4 import BeautifulSoup
 import anthropic
 
 
+# Some sites (Wikipedia among them) reject the default python-requests
+# User-Agent with a 403, so send an identifiable one instead.
+HEADERS = {"User-Agent": "task-queue/1.1 (+https://github.com/Z-Mogambi)"}
+
+
 # ---------------------------------------------------------------------------
 # Email — real delivery via Resend
 # ---------------------------------------------------------------------------
@@ -53,7 +58,7 @@ def handle_image_processing(payload):
         raise ValueError("Missing 'image_url' in image_processing payload")
 
     print(f"Downloading image from {image_url}...")
-    response = requests.get(image_url, timeout=15)
+    response = requests.get(image_url, headers=HEADERS, timeout=15)
     response.raise_for_status()
 
     original_size_kb = len(response.content) / 1024
@@ -120,7 +125,7 @@ def handle_document_summary(payload):
         raise ValueError("Missing 'url' in document_summary payload")
 
     print(f"Fetching document from {url}...")
-    response = requests.get(url, timeout=15)
+    response = requests.get(url, headers=HEADERS, timeout=15)
     response.raise_for_status()
 
     content_type = response.headers.get("Content-Type", "")
