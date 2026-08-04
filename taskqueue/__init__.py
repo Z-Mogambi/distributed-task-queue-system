@@ -10,6 +10,6 @@ Public API:
 from taskqueue.manager import QueueManager
 from taskqueue.worker import Worker
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 __all__ = ["QueueManager", "Worker", "__version__"]
