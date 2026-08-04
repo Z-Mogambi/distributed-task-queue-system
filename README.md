@@ -31,15 +31,19 @@ A production-grade distributed task queue built with Python, Redis, and Flask. S
 - Endpoints: submit job, check status, view metrics, health check
 - Runs on port 8000
 
-**Queue Manager** (`task_queue/manager.py`)
+**Queue Manager** (`taskqueue/manager.py`)
 - Redis-backed job storage with atomic operations
 - Retry logic with exponential backoff (2^n seconds)
 - Dead letter queue for permanently failed jobs
 
-**Worker Process** (`task_workers/worker.py`)
+**Worker Process** (`taskqueue/worker.py`)
 - Continuous job polling with 5-second timeout
 - Graceful shutdown via SIGINT (Ctrl+C)
 - Supports multiple concurrent instances
+- Takes a `handler` callable, so the reusable core carries no demo dependencies
+
+**Worker Runner** (`task_workers/worker.py`)
+- Thin entrypoint wiring the demo handlers into `taskqueue.Worker`
 
 **Job Handlers** (`task_workers/handlers.py`)
 - Email delivery via Resend API
@@ -64,6 +68,30 @@ A production-grade distributed task queue built with Python, Redis, and Flask. S
 - **Queue/Cache**: Redis 5.0+ 
 - **API Framework**: Flask 3.0
 - **Libraries**: redis-py, Flask, resend, Pillow, anthropic, beautifulsoup4
+
+## Use as a library
+
+The reusable core ships as the `taskqueue` package; the Flask API, demo handlers,
+and docker-compose stack in this repo are an example app built on top of it.
+
+```bash
+pip install .            # or: pip install git+https://github.com/Z-Mogambi/distributed-task-queue-system.git
+```
+
+```python
+from taskqueue import QueueManager, Worker
+
+queue = QueueManager()                       # REDIS_URL, or REDIS_HOST/REDIS_PORT
+job_id = queue.enqueue("resize", {"url": "..."}, max_retries=3)
+
+def handle(job):                             # receives the job dict, returns its result
+    return {"ok": job["payload"]}
+
+Worker(name="Worker-1", max_workers=50, handler=handle).run()
+```
+
+Package dependencies are just `redis` and `requests`. The example app's extra
+libraries (Flask, resend, Pillow, anthropic, beautifulsoup4) stay in `requirements.txt`.
 
 ## Installation
 
